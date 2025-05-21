@@ -77,5 +77,5 @@ jobs:
             owasp_pyqt6/dist/*.dmg
             owasp_pyqt6/dist/*.app
           if-no-files-found: error
-    needs:
-      - increment-tag
+#    needs:
+#      - increment-tag

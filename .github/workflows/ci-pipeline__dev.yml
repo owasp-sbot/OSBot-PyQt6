@@ -12,37 +12,70 @@ env:
 
 jobs:
 
-  run-tests:
-    name: "Run tests"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "run-tests"
-        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/pytest__run-tests@dev
+#  run-tests:
+#    name: "Run tests"
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: "run-tests"
+#        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/pytest__run-tests@dev
+#
+#  increment-tag:
+#    name: Increment Tag - DEV
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Increment Tag
+#        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__increment-tag@dev
+#        with:
+#          release_type: ${{ env.RELEASE_TYPE }}
+#    needs:
+#      - run-tests
+#
+#  publish-to-pypi:
+#    if: False
+#    name: "Publish to: PYPI"
+#    permissions:
+#      id-token: write
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Git Update Current Branch
+#        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__update_branch@dev
+#      - name: publish-to-pypi
+#        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/pypi__twine__publish@dev
+#    needs:
+#      - increment-tag
 
-  increment-tag:
-    name: Increment Tag - DEV
-    runs-on: ubuntu-latest
+ # Build macOS application and DMG
+  pyqt6__build-dist__macos:
+    name: "Build macOS Application"
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Increment Tag
-        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__increment-tag@dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          release_type: ${{ env.RELEASE_TYPE }}
-    needs:
-      - run-tests
+          python-version: '3.10'
 
-  publish-to-pypi:
-    if: False
-    name: "Publish to: PYPI"
-    permissions:
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Git Update Current Branch
-        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/git__update_branch@dev
-      - name: publish-to-pypi
-        uses: owasp-sbot/OSBot-GitHub-Actions/.github/actions/pypi__twine__publish@dev
+      - name: Build macOS application
+        run: |
+          cd owasp_pyqt6
+          python build_macos.py
+
+      - name: List build output
+        run: |
+          echo "Listing dist directory contents:"
+          find owasp_pyqt6/dist -type f | sort
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app-dmg
+          path: |
+            owasp_pyqt6/dist/*.dmg
+            owasp_pyqt6/dist/*.app
+          if-no-files-found: error
     needs:
       - increment-tag

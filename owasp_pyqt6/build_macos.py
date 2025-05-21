@@ -208,8 +208,8 @@ def main():
         return
 
     print(f"\n✅ Build completed successfully!")
-    print(f"Application bundle: {DIST_DIR / f'{APP_NAME.replace(' ', '')}.app'}")
-    print(f"DMG installer: {DIST_DIR / f'{APP_NAME.replace(' ', '')}-{APP_VERSION}.dmg'}")
+    print(f"Application bundle: {DIST_DIR / f'{APP_NAME.replace(" ", "")}.app'}")
+    print(f"DMG installer: {DIST_DIR / f'{APP_NAME.replace(" ", "")}-{APP_VERSION}.dmg'}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1 @@
+# OSBot-PyQt6

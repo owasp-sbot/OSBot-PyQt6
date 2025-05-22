@@ -18,6 +18,8 @@ import asyncio
 import json
 from pathlib import Path
 
+from osbot_utils.helpers.duration.decorators.capture_duration import capture_duration
+
 # Import the local mitmproxy implementation
 from start_mitmproxy import LocalMitmproxy, ContentCaptureAddon
 
@@ -290,6 +292,17 @@ class WebCaptureBrowser(QMainWindow):
 
         self.toolbar.addSeparator()
 
+        # Quick navigation buttons
+        dinis_button = QPushButton("Dinis Cruz site")
+        dinis_button.clicked.connect(lambda: self.navigate_to_specific_url("https://docs.diniscruz.ai"))
+        self.toolbar.addWidget(dinis_button)
+
+        bbc_sports_button = QPushButton("BBC Sports")
+        bbc_sports_button.clicked.connect(lambda: self.navigate_to_specific_url("https://www.bbc.co.uk/sport"))
+        self.toolbar.addWidget(bbc_sports_button)
+
+        self.toolbar.addSeparator()
+
         # Status indicators
         self.proxy_status_button = QPushButton("Proxy: Starting...")
         self.proxy_status_button.clicked.connect(self.show_proxy_status)
@@ -311,6 +324,13 @@ class WebCaptureBrowser(QMainWindow):
         style_color = "#4CAF50" if self.enable_replacement else "#f44336"
         self.replacement_status_button.setStyleSheet(f"background-color: {style_color}; color: white;")
         self.toolbar.addWidget(self.replacement_status_button)
+
+    def navigate_to_specific_url(self, url):
+        """Navigate to a specific URL"""
+        print(f"🌐 Navigating to: {url}")
+        self.web_view.load(QUrl(url))
+        self.url_edit.setText(url)
+        self.current_url = url
 
     def setup_browser(self):
         """Set up the browser component"""
@@ -441,7 +461,7 @@ class WebCaptureBrowser(QMainWindow):
         print(f"📡 Mitmproxy: {message}")
         self.status_bar.showMessage(message)
 
-        if "listening" in message.lower():
+        if "starting" in message.lower():
             self.proxy_status_button.setText("Proxy: ✅ Running")
             self.capture_status_button.setText("Capture: ✅ Active")
 
@@ -475,28 +495,57 @@ class WebCaptureBrowser(QMainWindow):
             log_content += "=" * 50 + "\n\n"
 
             if self.storage_dir.exists():
-                capture_dirs = [d for d in self.storage_dir.iterdir() if d.is_dir()]
-                log_content += f"Total Captures: {len(capture_dirs)}\n\n"
+                with capture_duration(action_name="load logs from disk") as duration:
+                    capture_dirs = [d for d in self.storage_dir.iterdir() if d.is_dir()]
+                    log_content += f"Total Captures: {len(capture_dirs)}\n\n"
 
-                # Show recent captures
-                for capture_dir in sorted(capture_dirs, reverse=True)[:10]:
-                    metadata_file = capture_dir / "metadata.json"
-                    if metadata_file.exists():
-                        try:
-                            import json
-                            with open(metadata_file, 'r') as f:
-                                metadata = json.load(f)
+                    # Sort by actual timestamp from metadata
+                    capture_items = []
+                    for capture_dir in capture_dirs:
+                        metadata_file = capture_dir / "metadata.json"
+                        if metadata_file.exists():
+                            try:
+                                with open(metadata_file, 'r') as f:
+                                    metadata = json.load(f)
+                                timestamp = metadata.get("timestamp", "")
+                                capture_items.append((timestamp, capture_dir, metadata))
+                            except:
+                                # If we can't read metadata, use folder name as fallback
+                                capture_items.append(("", capture_dir, None))
 
-                            url = metadata.get("request", {}).get("url", "Unknown")
-                            status = metadata.get("response", {}).get("status_code", "Unknown")
-                            timestamp = metadata.get("timestamp", "Unknown")
-                            content_modified = metadata.get("response", {}).get("content_modified", False)
-                            modification_indicator = "🔄" if content_modified else "📡"
+                log_content += f"Captures loaded in : {duration.seconds}\n\n"
+                # Sort by timestamp (most recent first) and take last 50
+                capture_items.sort(key=lambda x: x[0], reverse=True)
 
-                            log_content += f"{modification_indicator} [{timestamp}] {status} - {url}\n"
+                for timestamp, capture_dir, metadata in capture_items[:50]:
+                    if metadata:
+                        url = metadata.get("request", {}).get("url", "Unknown")
+                        status = metadata.get("response", {}).get("status_code", "Unknown")
+                        content_modified = metadata.get("response", {}).get("content_modified", False)
+                        modification_indicator = "🔄" if content_modified else "📡"
 
-                        except Exception as e:
-                            log_content += f"[Error reading {capture_dir.name}]: {e}\n"
+                        log_content += f"{modification_indicator} [{timestamp}] {status} - {url}\n"
+                    else:
+                        log_content += f"[Error reading {capture_dir.name}]\n"
+                # # Show recent captures
+                # for capture_dir in sorted(capture_dirs, reverse=True)[:50]:
+                #     metadata_file = capture_dir / "metadata.json"
+                #     if metadata_file.exists():
+                #         try:
+                #             import json
+                #             with open(metadata_file, 'r') as f:
+                #                 metadata = json.load(f)
+                #
+                #             url = metadata.get("request", {}).get("url", "Unknown")
+                #             status = metadata.get("response", {}).get("status_code", "Unknown")
+                #             timestamp = metadata.get("timestamp", "Unknown")
+                #             content_modified = metadata.get("response", {}).get("content_modified", False)
+                #             modification_indicator = "🔄" if content_modified else "📡"
+                #
+                #             log_content += f"{modification_indicator} [{timestamp}] {status} - {url}\n"
+                #
+                #         except Exception as e:
+                #             log_content += f"[Error reading {capture_dir.name}]: {e}\n"
 
             else:
                 log_content += "No captures found.\n"

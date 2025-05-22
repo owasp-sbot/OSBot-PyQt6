@@ -19,6 +19,13 @@ from mitmproxy import options, master
 from mitmproxy.tools.dump import DumpMaster
 from mitmproxy import http, ctx
 
+# Import our content replacer
+try:
+    from content_replacer import ContentReplacer
+except ImportError:
+    print("⚠️  ContentReplacer not found. Content replacement will be disabled.")
+    ContentReplacer = None
+
 
 class ContentCaptureAddon:
     """
@@ -26,16 +33,33 @@ class ContentCaptureAddon:
     This will be the core of our content capture functionality
     """
 
-    def __init__(self, storage_dir=None, verbose=True):
+    def __init__(self, storage_dir=None, verbose=True, enable_replacement=True):
         self.storage_dir = Path(storage_dir) if storage_dir else Path("./captures")
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.verbose = verbose
+        self.enable_replacement = enable_replacement
         self.captured_flows = []
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Initialize ContentReplacer if available and enabled
+        self.content_replacer = None
+        if ContentReplacer and self.enable_replacement:
+            try:
+                self.content_replacer = ContentReplacer(
+                    config_file="replacements.json",
+                    data_dir=str(self.storage_dir)
+                )
+                print(f"✅ Content Replacer initialized with {len(self.content_replacer.list_replacements())} rules")
+            except Exception as e:
+                print(f"❌ Error initializing ContentReplacer: {e}")
+                self.content_replacer = None
+        else:
+            print("ℹ️  Content replacement disabled")
 
         print(f"🔧 Content Capture Addon initialized")
         print(f"   Storage directory: {self.storage_dir}")
         print(f"   Session ID: {self.session_id}")
+        print(f"   Content replacement: {'✅ Enabled' if self.content_replacer else '❌ Disabled'}")
 
     def load(self, loader):
         """Called when the addon is loaded"""
@@ -44,6 +68,12 @@ class ContentCaptureAddon:
             typespec=bool,
             default=True,
             help="Enable content capture"
+        )
+        loader.add_option(
+            name="replacement_enabled",
+            typespec=bool,
+            default=self.enable_replacement,
+            help="Enable content replacement"
         )
         print("✅ Content Capture Addon loaded")
 
@@ -57,6 +87,27 @@ class ContentCaptureAddon:
             request_url = flow.request.pretty_url
             response_status = flow.response.status_code
             content_type = flow.response.headers.get("content-type", "unknown")
+
+            # Apply content replacement BEFORE capturing
+            if self.content_replacer and ctx.options.replacement_enabled and flow.response.content:
+                try:
+                    original_content = flow.response.content
+                    modified_content = self.content_replacer.process_content(
+                        original_content,
+                        content_type,
+                        request_url
+                    )
+
+                    # Update the response content if it was modified
+                    if modified_content != original_content:
+                        flow.response.content = modified_content
+                        # Update content length header
+                        flow.response.headers["content-length"] = str(len(modified_content))
+                        if self.verbose:
+                            print(f"🔄 Content modified for: {request_url}")
+
+                except Exception as e:
+                    print(f"❌ Error in content replacement for {request_url}: {e}")
 
             # Generate unique ID for this flow
             flow_id = hashlib.sha256(
@@ -81,7 +132,9 @@ class ContentCaptureAddon:
                     "status_code": response_status,
                     "headers": dict(flow.response.headers),
                     "content_type": content_type,
-                    "content_length": len(flow.response.content) if flow.response.content else 0
+                    "content_length": len(flow.response.content) if flow.response.content else 0,
+                    "content_modified": flow.response.content != getattr(flow.response, '_original_content',
+                                                                         flow.response.content)
                 }
             }
 
@@ -92,7 +145,9 @@ class ContentCaptureAddon:
             self.captured_flows.append(capture_data)
 
             if self.verbose:
-                print(f"📡 Captured: {flow.request.method} {request_url} → {response_status} ({content_type})")
+                modification_indicator = "🔄" if capture_data["response"]["content_modified"] else "📡"
+                print(
+                    f"{modification_indicator} Captured: {flow.request.method} {request_url} → {response_status} ({content_type})")
 
         except Exception as e:
             print(f"❌ Error in response handler: {e}")
@@ -178,12 +233,32 @@ class ContentCaptureAddon:
 
     def get_capture_summary(self):
         """Get a summary of captured content"""
-        return {
+        summary = {
             "session_id": self.session_id,
             "total_flows": len(self.captured_flows),
             "storage_dir": str(self.storage_dir),
             "flows": self.captured_flows[-10:]  # Last 10 flows
         }
+
+        # Add replacement stats if replacer is enabled
+        if self.content_replacer:
+            summary["replacement_stats"] = self.content_replacer.get_stats()
+
+        return summary
+
+    def reload_replacement_config(self):
+        """Reload replacement configuration"""
+        if self.content_replacer:
+            self.content_replacer.reload_config()
+            print("🔄 Replacement configuration reloaded")
+        else:
+            print("❌ Content replacer not available")
+
+    def get_replacement_stats(self):
+        """Get replacement statistics"""
+        if self.content_replacer:
+            return self.content_replacer.get_stats()
+        return {"error": "Content replacer not available"}
 
 
 class LocalMitmproxy:
@@ -191,11 +266,12 @@ class LocalMitmproxy:
     Local mitmproxy server implementation
     """
 
-    def __init__(self, port=8080, host="127.0.0.1", storage_dir=None, verbose=True):
+    def __init__(self, port=8080, host="127.0.0.1", storage_dir=None, verbose=True, enable_replacement=True):
         self.port = port
         self.host = host
         self.storage_dir = storage_dir
         self.verbose = verbose
+        self.enable_replacement = enable_replacement
         self.master = None
         self.capture_addon = None
         self.running = False
@@ -208,6 +284,8 @@ class LocalMitmproxy:
             http2=True,  # Enable HTTP/2 support
             confdir=str(Path.home() / ".mitmproxy"),  # Certificate directory
             ssl_insecure=False,  # Keep SSL verification on the server side
+            # Disable some features that might cause conflicts
+            # web_open_browser=False,
             showhost=self.verbose,
         )
         return opts
@@ -219,7 +297,8 @@ class LocalMitmproxy:
         # Add our content capture addon
         self.capture_addon = ContentCaptureAddon(
             storage_dir=self.storage_dir,
-            verbose=self.verbose
+            verbose=self.verbose,
+            enable_replacement=self.enable_replacement
         )
         addons.append(self.capture_addon)
 
@@ -234,6 +313,7 @@ class LocalMitmproxy:
             print(f"🚀 Starting local mitmproxy server...")
             print(f"   Host: {self.host}")
             print(f"   Port: {self.port}")
+            print(f"   Content Replacement: {'✅ Enabled' if self.enable_replacement else '❌ Disabled'}")
 
             # Set up options and master
             opts = self.setup_options()
@@ -272,16 +352,24 @@ class LocalMitmproxy:
             "running": self.running,
             "host": self.host,
             "port": self.port,
-            "storage_dir": self.storage_dir
+            "storage_dir": self.storage_dir,
+            "replacement_enabled": self.enable_replacement
         }
 
         if self.capture_addon:
             status["capture_summary"] = self.capture_addon.get_capture_summary()
+            if self.capture_addon.content_replacer:
+                status["replacement_stats"] = self.capture_addon.get_replacement_stats()
 
         return status
 
+    def reload_replacement_config(self):
+        """Reload replacement configuration"""
+        if self.capture_addon:
+            self.capture_addon.reload_replacement_config()
 
-def run_mitmproxy_server(port=8080, host="127.0.0.1", storage_dir=None, verbose=True):
+
+def run_mitmproxy_server(port=8080, host="127.0.0.1", storage_dir=None, verbose=True, enable_replacement=True):
     """
     Run the mitmproxy server in the current thread
     """
@@ -289,7 +377,8 @@ def run_mitmproxy_server(port=8080, host="127.0.0.1", storage_dir=None, verbose=
         port=port,
         host=host,
         storage_dir=storage_dir,
-        verbose=verbose
+        verbose=verbose,
+        enable_replacement=enable_replacement
     )
 
     try:
@@ -311,6 +400,7 @@ def main():
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Proxy host (default: 127.0.0.1)")
     parser.add_argument("--storage", "-s", type=str, help="Storage directory for captures")
     parser.add_argument("--quiet", "-q", action="store_true", help="Quiet mode (less verbose)")
+    parser.add_argument("--no-replace", action="store_true", help="Disable content replacement")
 
     args = parser.parse_args()
 
@@ -321,7 +411,8 @@ def main():
         port=args.port,
         host=args.host,
         storage_dir=args.storage,
-        verbose=not args.quiet
+        verbose=not args.quiet,
+        enable_replacement=not args.no_replace
     )
 
 

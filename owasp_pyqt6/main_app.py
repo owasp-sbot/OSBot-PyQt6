@@ -15,6 +15,7 @@ import atexit
 import requests
 import tempfile
 import asyncio
+import json
 from pathlib import Path
 
 # Import the local mitmproxy implementation
@@ -59,8 +60,9 @@ def setup_chromium_environment():
 # Apply environment setup IMMEDIATELY
 setup_chromium_environment()
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QToolBar, QLineEdit, QPushButton, \
-    QStatusBar, QMessageBox, QTextEdit, QTabWidget
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, QToolBar, QLineEdit, QPushButton,
+                             QStatusBar, QMessageBox, QTextEdit, QTabWidget, QHBoxLayout, QCheckBox, QLabel, QGroupBox,
+                             QScrollArea)
 from PyQt6.QtCore import QUrl, Qt, QProcess, pyqtSlot, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon, QAction
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -75,11 +77,12 @@ class MitmproxyThread(QThread):
     status_update = pyqtSignal(str)
     error_occurred = pyqtSignal(str)
 
-    def __init__(self, port=8080, host="127.0.0.1", storage_dir=None):
+    def __init__(self, port=8080, host="127.0.0.1", storage_dir=None, enable_replacement=True):
         super().__init__()
         self.port = port
         self.host = host
         self.storage_dir = storage_dir
+        self.enable_replacement = enable_replacement
         self.proxy_server = None
         self.should_stop = False
 
@@ -93,7 +96,8 @@ class MitmproxyThread(QThread):
                 port=self.port,
                 host=self.host,
                 storage_dir=self.storage_dir,
-                verbose=True
+                verbose=True,
+                enable_replacement=self.enable_replacement
             )
 
             self.status_update.emit("Mitmproxy server starting...")
@@ -113,6 +117,11 @@ class MitmproxyThread(QThread):
             self.proxy_server.stop()
         self.quit()
         self.wait()
+
+    def reload_replacement_config(self):
+        """Reload replacement configuration"""
+        if self.proxy_server:
+            self.proxy_server.reload_replacement_config()
 
 
 class AggressiveSSLBypass:
@@ -190,12 +199,13 @@ class SuperBypassWebView(QWebEngineView):
 
 
 class WebCaptureBrowser(QMainWindow):
-    def __init__(self, api_port=8000, debug_port=9222, proxy_port=8080):
+    def __init__(self, api_port=8000, debug_port=9222, proxy_port=8080, enable_replacement=True):
         super().__init__()
 
         self.api_port = api_port
         self.debug_port = debug_port
         self.proxy_port = proxy_port
+        self.enable_replacement = enable_replacement
         self.current_url = f"http://localhost:{api_port}/docs"
         self.current_url = f"https://docs.diniscruz.ai"
         self.fastapi_process = None
@@ -241,6 +251,12 @@ class WebCaptureBrowser(QMainWindow):
         self.log_layout = QVBoxLayout(self.log_tab)
         self.setup_capture_log()
         self.tab_widget.addTab(self.log_tab, "Capture Log")
+
+        # Content Replacement tab
+        self.replacement_tab = QWidget()
+        self.replacement_layout = QVBoxLayout(self.replacement_tab)
+        self.setup_replacement_tab()
+        self.tab_widget.addTab(self.replacement_tab, "Content Replacement")
 
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
@@ -288,6 +304,14 @@ class WebCaptureBrowser(QMainWindow):
         self.capture_status_button.clicked.connect(self.show_capture_status)
         self.toolbar.addWidget(self.capture_status_button)
 
+        # Content replacement status button
+        replacement_status = "✅ Enabled" if self.enable_replacement else "❌ Disabled"
+        self.replacement_status_button = QPushButton(f"Replacement: {replacement_status}")
+        self.replacement_status_button.clicked.connect(self.show_replacement_status)
+        style_color = "#4CAF50" if self.enable_replacement else "#f44336"
+        self.replacement_status_button.setStyleSheet(f"background-color: {style_color}; color: white;")
+        self.toolbar.addWidget(self.replacement_status_button)
+
     def setup_browser(self):
         """Set up the browser component"""
         print("🚀 Setting up integrated browser...")
@@ -313,6 +337,76 @@ class WebCaptureBrowser(QMainWindow):
         refresh_button.clicked.connect(self.refresh_capture_log)
         self.log_layout.addWidget(refresh_button)
 
+    def setup_replacement_tab(self):
+        """Set up the content replacement configuration tab"""
+        scroll_area = QScrollArea()
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+
+        # Configuration file info
+        config_group = QGroupBox("Configuration")
+        config_layout = QVBoxLayout(config_group)
+
+        config_file_path = self.storage_dir / "replacements.json"
+        config_info = QLabel(f"Configuration file: {config_file_path}")
+        config_layout.addWidget(config_info)
+
+        # Control buttons
+        button_layout = QHBoxLayout()
+
+        reload_config_button = QPushButton("Reload Configuration")
+        reload_config_button.clicked.connect(self.reload_replacement_config)
+        button_layout.addWidget(reload_config_button)
+
+        view_config_button = QPushButton("View Configuration File")
+        view_config_button.clicked.connect(self.view_replacement_config)
+        button_layout.addWidget(view_config_button)
+
+        edit_config_button = QPushButton("Edit Configuration File")
+        edit_config_button.clicked.connect(self.edit_replacement_config)
+        button_layout.addWidget(edit_config_button)
+
+        config_layout.addLayout(button_layout)
+        scroll_layout.addWidget(config_group)
+
+        # Replacement rules display
+        rules_group = QGroupBox("Replacement Rules")
+        rules_layout = QVBoxLayout(rules_group)
+
+        self.replacement_rules_display = QTextEdit()
+        self.replacement_rules_display.setReadOnly(True)
+        self.replacement_rules_display.setStyleSheet("font-family: monospace; font-size: 11px;")
+        rules_layout.addWidget(self.replacement_rules_display)
+
+        refresh_rules_button = QPushButton("Refresh Rules Display")
+        refresh_rules_button.clicked.connect(self.refresh_replacement_rules_display)
+        rules_layout.addWidget(refresh_rules_button)
+
+        scroll_layout.addWidget(rules_group)
+
+        # Statistics group
+        stats_group = QGroupBox("Replacement Statistics")
+        stats_layout = QVBoxLayout(stats_group)
+
+        self.replacement_stats_display = QTextEdit()
+        self.replacement_stats_display.setReadOnly(True)
+        self.replacement_stats_display.setStyleSheet("font-family: monospace; font-size: 11px;")
+        stats_layout.addWidget(self.replacement_stats_display)
+
+        refresh_stats_button = QPushButton("Refresh Statistics")
+        refresh_stats_button.clicked.connect(self.refresh_replacement_stats)
+        stats_layout.addWidget(refresh_stats_button)
+
+        scroll_layout.addWidget(stats_group)
+
+        scroll_area.setWidget(scroll_widget)
+        self.replacement_layout.addWidget(scroll_area)
+
+        # Auto-refresh timer
+        self.replacement_refresh_timer = QTimer()
+        self.replacement_refresh_timer.timeout.connect(self.refresh_replacement_stats)
+        self.replacement_refresh_timer.start(5000)  # Refresh every 5 seconds
+
     def start_mitmproxy_server(self):
         """Start the integrated mitmproxy server"""
         try:
@@ -325,7 +419,8 @@ class WebCaptureBrowser(QMainWindow):
             self.mitmproxy_thread = MitmproxyThread(
                 port=self.proxy_port,
                 host="127.0.0.1",
-                storage_dir=str(self.storage_dir)
+                storage_dir=str(self.storage_dir),
+                enable_replacement=self.enable_replacement
             )
 
             # Connect signals
@@ -395,8 +490,10 @@ class WebCaptureBrowser(QMainWindow):
                             url = metadata.get("request", {}).get("url", "Unknown")
                             status = metadata.get("response", {}).get("status_code", "Unknown")
                             timestamp = metadata.get("timestamp", "Unknown")
+                            content_modified = metadata.get("response", {}).get("content_modified", False)
+                            modification_indicator = "🔄" if content_modified else "📡"
 
-                            log_content += f"[{timestamp}] {status} - {url}\n"
+                            log_content += f"{modification_indicator} [{timestamp}] {status} - {url}\n"
 
                         except Exception as e:
                             log_content += f"[Error reading {capture_dir.name}]: {e}\n"
@@ -409,6 +506,112 @@ class WebCaptureBrowser(QMainWindow):
         except Exception as e:
             self.capture_log.setPlainText(f"Error refreshing log: {e}")
 
+    def reload_replacement_config(self):
+        """Reload replacement configuration"""
+        if self.mitmproxy_thread:
+            self.mitmproxy_thread.reload_replacement_config()
+            self.refresh_replacement_rules_display()
+            QMessageBox.information(self, "Configuration Reloaded", "Replacement configuration has been reloaded.")
+
+    def view_replacement_config(self):
+        """View the replacement configuration file"""
+        config_file = self.storage_dir / "replacements.json"
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_content = f.read()
+
+                dialog = QMessageBox(self)
+                dialog.setIcon(QMessageBox.Icon.Information)
+                dialog.setWindowTitle("Replacement Configuration")
+                dialog.setText("Configuration File Content:")
+                dialog.setDetailedText(config_content)
+                dialog.exec()
+
+            except Exception as e:
+                QMessageBox.warning(self, "Error", f"Error reading configuration file: {e}")
+        else:
+            QMessageBox.information(self, "No Configuration",
+                                    "Configuration file does not exist yet. It will be created when needed.")
+
+    def edit_replacement_config(self):
+        """Open configuration file in system editor"""
+        config_file = self.storage_dir / "replacements.json"
+        try:
+            import subprocess
+            import platform
+
+            if platform.system() == "Windows":
+                subprocess.run(["notepad", str(config_file)], check=False)
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.run(["open", "-t", str(config_file)], check=False)
+            else:  # Linux
+                subprocess.run(["xdg-open", str(config_file)], check=False)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Error opening configuration file: {e}")
+
+    def refresh_replacement_rules_display(self):
+        """Refresh the replacement rules display"""
+        config_file = self.storage_dir / "replacements.json"
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+                rules_text = "Replacement Rules:\n"
+                rules_text += "=" * 50 + "\n\n"
+
+                replacements = config.get("replacements", [])
+                for i, rule in enumerate(replacements, 1):
+                    enabled = rule.get("enabled", True)
+                    status_icon = "✅" if enabled else "❌"
+                    rules_text += f"{i}. {status_icon} {rule.get('name', 'Unnamed Rule')}\n"
+                    rules_text += f"   Pattern: {rule.get('pattern', 'N/A')}\n"
+                    rules_text += f"   Replacement: {rule.get('replacement', 'N/A')}\n"
+                    rules_text += f"   Content Types: {rule.get('content_types', ['any'])}\n"
+                    rules_text += f"   Description: {rule.get('description', 'No description')}\n\n"
+
+                if not replacements:
+                    rules_text += "No replacement rules defined.\n"
+
+                self.replacement_rules_display.setPlainText(rules_text)
+
+            except Exception as e:
+                self.replacement_rules_display.setPlainText(f"Error reading rules: {e}")
+        else:
+            self.replacement_rules_display.setPlainText("Configuration file does not exist yet.")
+
+    def refresh_replacement_stats(self):
+        """Refresh replacement statistics display"""
+        try:
+            # This would need to be implemented to get stats from the mitmproxy thread
+            stats_text = "Replacement Statistics:\n"
+            stats_text += "=" * 50 + "\n\n"
+            stats_text += "📊 Statistics will be available once the proxy processes some requests.\n"
+            stats_text += f"🔄 Content replacement: {'Enabled' if self.enable_replacement else 'Disabled'}\n"
+            stats_text += f"📁 Storage directory: {self.storage_dir}\n"
+
+            if self.storage_dir.exists():
+                config_file = self.storage_dir / "replacements.json"
+                if config_file.exists():
+                    try:
+                        with open(config_file, 'r') as f:
+                            config = json.load(f)
+
+                        stats = config.get("stats", {})
+                        if stats:
+                            stats_text += f"\n📈 Total processed: {stats.get('total_processed', 0)}\n"
+                            stats_text += f"🔄 Total replaced: {stats.get('total_replaced', 0)}\n"
+                            stats_text += f"📅 Last updated: {stats.get('last_updated', 'Never')}\n"
+                    except:
+                        pass
+
+            self.replacement_stats_display.setPlainText(stats_text)
+
+        except Exception as e:
+            self.replacement_stats_display.setPlainText(f"Error getting stats: {e}")
+
     def show_proxy_status(self):
         """Show proxy status dialog"""
         status_text = f"""Integrated Mitmproxy Status:
@@ -417,6 +620,7 @@ Host: localhost
 Port: {self.proxy_port}
 Storage Directory: {self.storage_dir}
 Thread Running: {self.mitmproxy_thread.isRunning() if self.mitmproxy_thread else False}
+Content Replacement: {'✅ Enabled' if self.enable_replacement else '❌ Disabled'}
 
 This is a local Python mitmproxy instance running within the application.
 All web traffic is intercepted and saved to the storage directory.
@@ -476,6 +680,31 @@ passing through the integrated mitmproxy."""
         msg.setIcon(QMessageBox.Icon.Information)
         msg.setWindowTitle("Content Capture Status")
         msg.setText("Automatic Content Capture Active")
+        msg.setInformativeText(status_text)
+        msg.exec()
+
+    def show_replacement_status(self):
+        """Show content replacement status"""
+        status_text = f"""Content Replacement Status:
+
+Status: {'✅ Enabled' if self.enable_replacement else '❌ Disabled'}
+Configuration File: {self.storage_dir / 'replacements.json'}
+
+Content replacement allows you to modify web content
+in real-time as it passes through the proxy.
+
+Features:
+- Regex-based pattern matching
+- Support for multiple content types
+- Configurable replacement rules
+- Statistics tracking
+
+Check the 'Content Replacement' tab to configure rules."""
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Content Replacement Status")
+        msg.setText("Content Replacement")
         msg.setInformativeText(status_text)
         msg.exec()
 
@@ -540,6 +769,10 @@ passing through the integrated mitmproxy."""
         """Cleanup on exit"""
         print("🧹 Cleaning up...")
 
+        # Stop replacement refresh timer
+        if hasattr(self, 'replacement_refresh_timer'):
+            self.replacement_refresh_timer.stop()
+
         # Stop mitmproxy
         if self.mitmproxy_thread:
             self.mitmproxy_thread.stop_proxy()
@@ -558,6 +791,7 @@ def main():
     parser.add_argument('--api-port', type=int, default=8000, help='FastAPI port')
     parser.add_argument('--debug-port', type=int, default=9222, help='Debug port')
     parser.add_argument('--proxy-port', type=int, default=8080, help='mitmproxy port')
+    parser.add_argument('--no-replacement', action='store_true', help='Disable content replacement')
 
     args, unknown = parser.parse_known_args()
 
@@ -571,9 +805,17 @@ def main():
     app.setApplicationName("Web Content Capture")
     app.setOrganizationName("Web Content Capture")
 
-    print("🚀 Starting Web Content Capture with INTEGRATED mitmproxy...")
+    enable_replacement = not args.no_replacement
 
-    browser = WebCaptureBrowser(api_port=args.api_port, debug_port=args.debug_port, proxy_port=args.proxy_port)
+    print("🚀 Starting Web Content Capture with INTEGRATED mitmproxy...")
+    print(f"🔄 Content replacement: {'✅ Enabled' if enable_replacement else '❌ Disabled'}")
+
+    browser = WebCaptureBrowser(
+        api_port=args.api_port,
+        debug_port=args.debug_port,
+        proxy_port=args.proxy_port,
+        enable_replacement=enable_replacement
+    )
     browser.show()
 
     sys.exit(app.exec())

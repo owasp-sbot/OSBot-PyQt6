@@ -68,7 +68,6 @@ def install_dependencies():
         "PyQt6-WebEngine",
         "fastapi",
         "uvicorn[standard]",
-        "playwright",
         "pyinstaller",
         "python-multipart",
         "starlette",
@@ -78,13 +77,6 @@ def install_dependencies():
     print("Installing dependencies...")
     cmd = ["pip", "install"] + dependencies
     return run_command(cmd, "Failed to install dependencies")
-
-
-def install_playwright_browsers():
-    """Install Playwright browsers"""
-    print("Installing Playwright browsers...")
-    cmd = ["python", "-m", "playwright", "install", "chromium"]
-    return run_command(cmd, "Failed to install Playwright browsers")
 
 
 def build_app_with_pyinstaller():
@@ -113,7 +105,6 @@ def build_app_with_pyinstaller():
         "--noconfirm",
         "--add-data", f"{PROJECT_ROOT / 'server.py'}:.",
         "--add-data", f"{PROJECT_ROOT / 'client.py'}:.",
-        "--collect-all", "playwright",
         "--collect-all", "uvicorn",
         "--collect-all", "fastapi",
         f"{PROJECT_ROOT / 'main_app.py'}"
@@ -184,9 +175,6 @@ def main():
 
     # Prepare build environment
     if not install_dependencies():
-        return
-
-    if not install_playwright_browsers():
         return
 
     # Build the app

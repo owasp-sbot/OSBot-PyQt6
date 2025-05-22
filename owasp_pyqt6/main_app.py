@@ -86,11 +86,6 @@ class WebCaptureBrowser(QMainWindow):
         go_button.clicked.connect(self.navigate_to_url)
         self.toolbar.addWidget(go_button)
 
-        # Capture button
-        capture_button = QPushButton("Capture")
-        capture_button.clicked.connect(self.run_playwright_capture)
-        self.toolbar.addWidget(capture_button)
-
     def setup_browser(self):
         """Set up the web browser component"""
         # Create web profile with custom settings
@@ -178,50 +173,6 @@ class WebCaptureBrowser(QMainWindow):
         lines = data.strip().split('\n')
         if lines:
             self.status_bar.showMessage(lines[-1])
-
-    def run_playwright_capture(self):
-        """Run the Playwright capture script in a separate thread"""
-        try:
-            # Get the current URL from the browser
-            current_url = self.web_view.url().toString()
-
-            # Create a thread to run the Playwright capture to avoid UI freeze
-            capture_thread = threading.Thread(
-                target=self._execute_playwright_capture,
-                args=(current_url,)
-            )
-            capture_thread.daemon = True
-            capture_thread.start()
-
-            self.status_bar.showMessage("Starting capture process...")
-
-        except Exception as e:
-            self.status_bar.showMessage(f"Error starting capture: {str(e)}")
-            print(f"Error starting capture: {str(e)}")
-
-    def _execute_playwright_capture(self, url):
-        """Execute the Playwright capture script (run in a separate thread)"""
-        try:
-            # Get the path to the client.py file
-            client_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client.py")
-
-            # Execute the client.py script
-            cmd = [sys.executable, client_path, str(self.debug_port), url]
-
-            # Use subprocess directly since we're in a thread
-            result = subprocess.run(cmd, capture_output=True, text=True)
-
-            # Print and update status with the results
-            print(f"Playwright capture stdout: {result.stdout}")
-            if result.stderr:
-                print(f"Playwright capture stderr: {result.stderr}")
-
-            # Update status bar on the main thread
-            self.status_bar.showMessage(f"Capture completed for {url}")
-
-        except Exception as e:
-            print(f"Error in playwright capture thread: {str(e)}")
-            self.status_bar.showMessage(f"Capture failed: {str(e)}")
 
     def cleanup(self):
         """Clean up resources on app exit"""

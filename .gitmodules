@@ -1,0 +1,3 @@
+[submodule "modules/OSBot-Cloud-FS"]
+	path = modules/OSBot-Cloud-FS
+	url = git@github.com:owasp-sbot/OSBot-Cloud-FS.git

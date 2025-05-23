@@ -1,0 +1,21 @@
+[tool.poetry]
+name        = "owasp_pyqt6"
+version     = "v0.1.6"
+description = "MGraph-DB"
+authors     = ["Dinis Cruz <dinis.cruz@owasp.org>"]
+license     = "Apache 2.0"
+readme      = "README.md"
+homepage    = "https://github.com/owasp-sbot/OSBot-PyQt6"
+repository  = "https://github.com/owasp-sbot/OSBot-PyQt6"
+
+[tool.poetry.dependencies]
+python            = "^3.12"
+osbot-utils       = "*"
+PyQt6             = "*"
+PyQt6-WebEngine   = "*"
+fastapi           = "*"
+python-multipart  = "*"
+pydantic          = "*"
+uvicorn           = "*"
+mitmproxy         = "*"
+requests          = "*"

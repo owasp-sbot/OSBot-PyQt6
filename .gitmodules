@@ -1,3 +1,9 @@
 [submodule "modules/OSBot-Cloud-FS"]
 	path = modules/OSBot-Cloud-FS
 	url = git@github.com:owasp-sbot/OSBot-Cloud-FS.git
+[submodule "modules/OSBot-Utils"]
+	path = modules/OSBot-Utils
+	url = git@github.com:owasp-sbot/OSBot-Utils.git
+[submodule "modules/Memory-FS"]
+	path = modules/Memory-FS
+	url = git@github.com:owasp-sbot/Memory-FS.git

@@ -8,7 +8,7 @@ on:
 env:
   GIT__BRANCH      : 'dev'
   RELEASE_TYPE     : 'minor'
-  PACKAGE_NAME     : 'owasp_pyqt6'
+  PACKAGE_NAME     : 'osbot_pyqt6'
 
 jobs:
 
@@ -48,34 +48,34 @@ jobs:
       - increment-tag
 
  # Build macOS application and DMG
-#  pyqt6__build-dist__macos:
-#    name: "Build macOS Application"
-#    runs-on: macos-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - name: Set up Python
-#        uses: actions/setup-python@v4
-#        with:
-#          python-version: '3.12'
-#
-#      - name: Build macOS application
-#        run: |
-#          cd owasp_pyqt6
-#          python build_macos.py
-#
-#      - name: List build output
-#        run: |
-#          echo "Listing dist directory contents:"
-#          find owasp_pyqt6/dist -type f | sort
-#
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: macos-app-dmg
-#          path: |
-#            owasp_pyqt6/dist/*.dmg
-#            owasp_pyqt6/dist/*.app
-#          if-no-files-found: error
-#    needs:
-#      - increment-tag
+  pyqt6__build-dist__macos:
+    name: "Build macOS Application"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Build macOS application
+        run: |
+          cd osbot_pyqt6
+          python build_macos.py
+
+      - name: List build output
+        run: |
+          echo "Listing dist directory contents:"
+          find osbot_pyqt6/dist -type f | sort
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app-dmg
+          path: |
+            osbot_pyqt6/dist/*.dmg
+            osbot_pyqt6/dist/*.app
+          if-no-files-found: error
+    needs:
+      - increment-tag

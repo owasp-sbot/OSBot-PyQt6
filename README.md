@@ -25,7 +25,7 @@ pip install PyQt6 PyQt6-WebEngine mitmproxy fastapi uvicorn requests osbot-utils
 
 ### Run the Application
 ```bash
-cd owasp_pyqt6
+cd osbot_pyqt6
 python3 ./main_app.py
 ```
 
@@ -122,7 +122,7 @@ The application will start with:
 
 ```
 OSBot-PyQt6/
-├── owasp_pyqt6/
+├── osbot_pyqt6/
 │   ├── main_app.py                 # Main application entry point
 │   ├── start_mitmproxy.py          # Integrated mitmproxy implementation
 │   ├── content_replacer.py         # Content replacement engine
@@ -145,7 +145,7 @@ OSBot-PyQt6/
 ### Basic Web Browsing with Capture
 ```bash
 # Start the application
-cd owasp_pyqt6
+cd osbot_pyqt6
 python3 ./main_app.py
 
 # All web traffic is automatically captured

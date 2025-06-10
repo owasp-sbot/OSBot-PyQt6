@@ -89,7 +89,7 @@ pip install -r requirements-dev.txt
 ### Project Structure
 ```
 OSBot-PyQt6/
-├── owasp_pyqt6/                 # Main package
+├── osbot_pyqt6/                 # Main package
 │   ├── __init__.py
 │   ├── integrated_main_app.py   # Main application entry point
 │   ├── start_mitmproxy.py       # Standalone mitmproxy server
@@ -188,13 +188,13 @@ git push origin feature/your-feature-name
 #### Code Style
 ```bash
 # Format code with Black
-black owasp_pyqt6/
+black osbot_pyqt6/
 
 # Lint with flake8
-flake8 owasp_pyqt6/
+flake8 osbot_pyqt6/
 
 # Type checking with mypy
-mypy owasp_pyqt6/
+mypy osbot_pyqt6/
 ```
 
 ### 2. Testing
@@ -208,7 +208,7 @@ pytest
 pytest tests/test_content_replacer.py
 
 # Run with coverage
-pytest --cov=owasp_pyqt6
+pytest --cov=osbot_pyqt6
 
 # Run GUI tests (requires X11/display)
 pytest tests/test_gui.py
@@ -229,7 +229,7 @@ python tests/test_e2e.py
 #### Manual Testing
 ```bash
 # Start development server
-python owasp_pyqt6/integrated_main_app.py --proxy-port 8080
+python osbot_pyqt6/integrated_main_app.py --proxy-port 8080
 
 # Test content replacement
 # 1. Edit data/replacements.json
@@ -288,7 +288,7 @@ curl http://localhost:8080/cert/pem
 ```python
 # tests/test_content_replacer.py
 import pytest
-from owasp_pyqt6.content_replacer import ContentReplacer
+from osbot_pyqt6.content_replacer import ContentReplacer
 
 class TestContentReplacer:
     def setup_method(self):
@@ -307,7 +307,7 @@ class TestContentReplacer:
 import pytest
 from PyQt6.QtTest import QTest
 from PyQt6.QtCore import Qt
-from owasp_pyqt6.integrated_main_app import WebCaptureBrowser
+from osbot_pyqt6.integrated_main_app import WebCaptureBrowser
 
 @pytest.fixture
 def app(qtbot):
@@ -329,7 +329,7 @@ def test_navigation(app, qtbot):
 # tests/test_integration.py
 import asyncio
 import pytest
-from owasp_pyqt6.start_mitmproxy import LocalMitmproxy
+from osbot_pyqt6.start_mitmproxy import LocalMitmproxy
 
 @pytest.mark.asyncio
 async def test_mitmproxy_integration():
@@ -375,7 +375,7 @@ jobs:
     
     - name: Run tests
       run: |
-        xvfb-run -a pytest --cov=owasp_pyqt6
+        xvfb-run -a pytest --cov=osbot_pyqt6
     
     - name: Upload coverage
       uses: codecov/codecov-action@v3
@@ -607,10 +607,10 @@ python -m venv venv
 #### Code Scanning
 ```bash
 # Security linting
-bandit -r owasp_pyqt6/
+bandit -r osbot_pyqt6/
 
 # Static analysis
-semgrep --config=auto owasp_pyqt6/
+semgrep --config=auto osbot_pyqt6/
 ```
 
 ---

@@ -8,7 +8,7 @@ on:
 env:
   GIT__BRANCH      : 'main'
   RELEASE_TYPE     : 'major'
-  PACKAGE_NAME     : 'owasp_pyqt6'
+  PACKAGE_NAME     : 'osbot_pyqt6'
 
 jobs:
 

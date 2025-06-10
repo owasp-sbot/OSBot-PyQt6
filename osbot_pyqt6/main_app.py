@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Web Content Capture with integrated local mitmproxy
+Web-Content-Capture-MVP with integrated local mitmproxy
 This version starts mitmproxy locally within the Python application
 """
 
@@ -215,7 +215,7 @@ class WebCaptureBrowser(QMainWindow):
         self.storage_dir = Path("./captures")
 
         # Set window properties
-        self.setWindowTitle("Web Content Capture (Integrated Mitmproxy)")
+        self.setWindowTitle("Web-Content-Capture-MVP (Integrated Mitmproxy)")
         self.setGeometry(100, 100, 1400, 900)
 
         # Create UI
@@ -836,7 +836,7 @@ Check the 'Content Replacement' tab to configure rules."""
 
 def main():
     # Parse arguments
-    parser = argparse.ArgumentParser(description="Web Content Capture with Integrated Mitmproxy")
+    parser = argparse.ArgumentParser(description="Web-Content-Capture-MVP with Integrated Mitmproxy")
     parser.add_argument('--api-port', type=int, default=8000, help='FastAPI port')
     parser.add_argument('--debug-port', type=int, default=9222, help='Debug port')
     parser.add_argument('--proxy-port', type=int, default=8080, help='mitmproxy port')
@@ -851,12 +851,12 @@ def main():
 
     # Create application
     app = QApplication(sys.argv)
-    app.setApplicationName("Web Content Capture")
-    app.setOrganizationName("Web Content Capture")
+    app.setApplicationName("Web-Content-Capture-MVP")
+    app.setOrganizationName("Web-Content-Capture-MVP")
 
     enable_replacement = not args.no_replacement
 
-    print("🚀 Starting Web Content Capture with INTEGRATED mitmproxy...")
+    print("🚀 Starting Web-Content-Capture-MVP with INTEGRATED mitmproxy...")
     print(f"🔄 Content replacement: {'✅ Enabled' if enable_replacement else '❌ Disabled'}")
 
     browser = WebCaptureBrowser(

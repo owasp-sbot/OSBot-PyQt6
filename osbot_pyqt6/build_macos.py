@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for creating a macOS application bundle for Web Content Capture.
+Build script for creating a macOS application bundle for Web-Content-Capture-MVP.
 This script uses PyInstaller to create a single, self-contained .app file.
 
 Requirements:
@@ -28,7 +28,7 @@ if platform.system() != "Darwin":
     exit(1)
 
 # Parse arguments
-parser = argparse.ArgumentParser(description="Build macOS application for Web Content Capture")
+parser = argparse.ArgumentParser(description="Build macOS application for Web-Content-Capture-MVP")
 parser.add_argument("--sign", action="store_true", help="Sign the application with an Apple Developer certificate")
 parser.add_argument("--cert-name", type=str, default=None, help="Certificate name to use for signing")
 args = parser.parse_args()
@@ -53,7 +53,7 @@ os.makedirs(DIST_DIR, exist_ok=True)
 os.makedirs(ASSETS_DIR, exist_ok=True)
 
 # Application metadata
-APP_NAME = "Web Content Capture"
+APP_NAME = "Web-Content-Capture-MVP"
 APP_IDENTIFIER = "com.osbot.webcapture"
 APP_VERSION = "1.0.0"
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name        = "osbot_pyqt6"
-version     = "v0.2.3"
+version     = "v0.2.4"
 description = "OSBot-PyQt6"
 authors     = ["Dinis Cruz <dinis.cruz@owasp.org>"]
 license     = "Apache 2.0"

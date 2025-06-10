@@ -1,7 +1,7 @@
 import owasp_pyqt6
 from unittest                      import TestCase
 from osbot_utils.utils.Files       import parent_folder, file_name
-from owasp_pyqt6.utils.Version  import Version, version__owasp_pyqt6
+from owasp_pyqt6.utils.Version     import Version, version__owasp_pyqt6
 
 
 class test_Version(TestCase):

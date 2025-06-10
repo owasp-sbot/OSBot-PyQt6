@@ -1,60 +1,77 @@
-# Web Content Capture - PyQt6 Edition
+# OSBot-PyQt6 - Web Content Capture
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![PyQt6](https://img.shields.io/badge/PyQt6-6.0+-green.svg)](https://pypi.org/project/PyQt6/)
-[![mitmproxy](https://img.shields.io/badge/mitmproxy-Latest-orange.svg)](https://mitmproxy.org/)
+[![mitmproxy](https://img.shields.io/badge/mitmproxy-Integrated-orange.svg)](https://mitmproxy.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A **self-contained, desktop application** for capturing and analyzing web content with real-time content replacement capabilities. Built with PyQt6 + mitmproxy for comprehensive web traffic interception and modification.
+A powerful desktop application for capturing, analyzing, and modifying web content in real-time. Built with PyQt6 and an integrated mitmproxy server for comprehensive web traffic interception and modification.
 
-## 🎯 **What This Does**
+## 🎯 **Key Features**
 
-- **🌐 Full Web Browser**: Chromium-based browser with complete SSL bypass
-- **📡 Traffic Capture**: Intercepts and saves ALL HTTP/HTTPS requests/responses  
-- **🔄 Content Replacement**: Real-time regex-based content modification via JSON config
-- **📁 Organized Storage**: Automatic content organization with metadata
-- **🔒 Self-Contained**: No system modifications, admin privileges, or external dependencies
+- **🌐 Full Web Browser**: Chromium-based browser with complete SSL/TLS interception
+- **📡 Traffic Capture**: Intercepts and saves all HTTP/HTTPS requests and responses  
+- **🔄 Real-time Content Replacement**: Modify web content on-the-fly using regex patterns
+- **📁 Organized Storage**: Automatic content organization with detailed metadata
+- **🔒 Self-Contained**: No system modifications or admin privileges required
+- **🎨 Intuitive UI**: Tabbed interface for browsing, capture logs, and rule management
 
 ## 🚀 **Quick Start**
 
 ### Prerequisites
 ```bash
-pip install PyQt6 PyQt6-WebEngine mitmproxy fastapi uvicorn requests
+pip install PyQt6 PyQt6-WebEngine mitmproxy fastapi uvicorn requests osbot-utils
 ```
 
 ### Run the Application
 ```bash
-python integrated_main_app.py --proxy-port 8080
+cd owasp_pyqt6
+python3 ./main_app.py
 ```
 
-### Test Content Replacement
-1. Edit `./data/replacements.json` 
-2. Enable a replacement rule: `"enabled": true`
-3. Browse websites and see content modified in real-time!
+The application will start with:
+- Integrated mitmproxy on port 8080
+- FastAPI backend on port 8000
+- Browser with automatic proxy configuration
 
-## 📊 **Current Features**
+## 📸 **Screenshots**
 
-### ✅ **Core Functionality**
-- **Integrated mitmproxy server** running locally in Python
-- **SSL certificate bypass** with aggressive QtWebEngine configuration
-- **Automatic content capture** for all web traffic (HTML, JSON, CSS, JS, images)
-- **Real-time content replacement** using regex patterns
-- **Dual-mode operation**: Browser + Capture Log tabs
-- **FastAPI backend** for content management and storage
+### Main Browser Interface
+![Main Browser with Content Replacement](https://github.com/user-attachments/assets/754a5475-b015-4d25-a09f-ef4ff03e31a3)
+*Web browser showing real-time content modification - notice how "Dinis" is replaced with "MODIFIED" throughout the page*
+
+### Content Interception in Action
+![BBC Sports Interception](https://github.com/user-attachments/assets/04b73714-7e13-4330-b71e-17ba0320759d)
+*BBC Sports page with injected warning banner demonstrating content modification capabilities*
+
+### Rule Management Interface
+![Content Replacement Rules](https://github.com/user-attachments/assets/22537999-b29b-4ca7-b9f3-f853ed3963e4)
+*Configuration interface showing active replacement rules and statistics*
+
+## 📊 **Core Functionality**
+
+### ✅ **Integrated Components**
+- **Local mitmproxy server** running within the Python application
+- **SSL/TLS interception** with automatic certificate handling
+- **Content capture** for all web traffic (HTML, JSON, CSS, JS, images, etc.)
+- **Real-time content replacement** using configurable regex patterns
+- **Three-tab interface**: Browser, Capture Log, and Content Replacement
+- **FastAPI backend** for content management and API access
 
 ### ✅ **Content Replacement System**
-- **JSON configuration** stored in `./data/replacements.json`
-- **Regex pattern matching** with flags (IGNORECASE, MULTILINE, etc.)
+- **JSON-based configuration** stored in `./captures/replacements.json`
+- **Regex pattern matching** with full flag support (IGNORECASE, MULTILINE, etc.)
 - **Content-type filtering** (HTML, JSON, CSS, JavaScript)
-- **Live reload** capability for testing replacements
-- **Replacement statistics** and tracking
+- **Live reload** - changes take effect immediately
+- **Visual indicators** showing which content has been modified
+- **Replacement statistics** tracking
 
-### ✅ **Browser Integration**
-- **PyQt6 WebEngine** with Chromium rendering
-- **Proxy auto-configuration** routing all traffic through mitmproxy
-- **SSL bypass** without system certificate store modifications
-- **Navigation controls** (back, forward, reload, URL bar)
-- **Status indicators** for proxy, SSL, and capture states
+### ✅ **Capture Capabilities**
+- **Automatic content organization** by flow ID
+- **Complete metadata storage** (headers, timestamps, status codes)
+- **Content-aware file storage** (HTML as .html, JSON as .json, etc.)
+- **Performance optimized** loading with duration tracking
+- **Visual indicators** (🔄 for modified content, 📡 for original)
 
 ## 🏗️ **Architecture Overview**
 
@@ -63,27 +80,41 @@ python integrated_main_app.py --proxy-port 8080
 │        PyQt6 Desktop App            │
 │  ┌─────────────────────────────────┐│
 │  │     QtWebEngine Browser         ││  
-│  │   (SSL Bypass + Proxy Config)   ││
+│  │   (SSL Bypass + Auto Proxy)     ││
+│  └─────────────────────────────────┘│
+│  ┌─────────────────────────────────┐│
+│  │    Tab Interface                ││
+│  │  • Browser                      ││
+│  │  • Capture Log                  ││
+│  │  • Content Replacement          ││
 │  └─────────────────────────────────┘│
 └─────────────────┬───────────────────┘
-                  │ All HTTP/HTTPS Traffic
+                  │ All Traffic
                   ▼
 ┌─────────────────────────────────────┐
-│       Local mitmproxy Server        │
+│    Integrated mitmproxy Server      │
 │  ┌─────────────────────────────────┐│
 │  │    ContentCaptureAddon          ││
-│  │  • Intercepts all requests      ││  
-│  │  • Applies content replacements ││
-│  │  • Saves organized content      ││
+│  │  • Intercepts requests/responses││  
+│  │  • Applies replacements         ││
+│  │  • Saves content & metadata     ││
+│  └─────────────────────────────────┘│
+│  ┌─────────────────────────────────┐│
+│  │    ContentReplacer              ││
+│  │  • Regex pattern matching       ││
+│  │  • Content-type filtering       ││
+│  │  • Real-time modification       ││
 │  └─────────────────────────────────┘│
 └─────────────────┬───────────────────┘
-                  │ Processed Content
+                  │
                   ▼
 ┌─────────────────────────────────────┐
-│         Content Storage             │
-│  • ./captures/ (organized by flow) │
-│  • ./data/replacements.json        │
-│  • FastAPI backend integration     │
+│         Storage Layer               │
+│  • ./captures/[flow-id]/            │
+│    - metadata.json                  │
+│    - response.html/json/txt         │
+│    - request.bin                    │
+│  • ./captures/replacements.json     │
 └─────────────────────────────────────┘
 ```
 
@@ -91,51 +122,53 @@ python integrated_main_app.py --proxy-port 8080
 
 ```
 OSBot-PyQt6/
-│
 ├── owasp_pyqt6/
-│   ├── integrated_main_app.py      # Main application with integrated UI
-│   ├── start_mitmproxy.py          # Standalone mitmproxy server  
+│   ├── main_app.py                 # Main application entry point
+│   ├── start_mitmproxy.py          # Integrated mitmproxy implementation
 │   ├── content_replacer.py         # Content replacement engine
-│   ├── server.py                   # FastAPI backend
-│   └── build_macos.py              # macOS build script
+│   ├── server.py                   # FastAPI backend server
+│   ├── Version.py                  # Version management
+│   └── __init__.py                 # Package initialization
 │
-├── data/
-│   └── replacements.json           # Content replacement configuration
+├── captures/                       # Auto-created storage directory
+│   ├── replacements.json           # Content replacement rules
+│   └── [flow-id]/                  # Captured content by flow
+│       ├── metadata.json
+│       ├── response.html
+│       └── request.bin
 │
-├── captures/                       # Captured web content (auto-created)
-│   ├── [flow-id]/
-│   │   ├── metadata.json
-│   │   ├── response.html
-│   │   └── request.bin
-│   └── ...
-│
-└── docs/                          # Documentation
-    ├── architecture.md
-    ├── content-replacement.md
-    ├── ssl-bypass.md
-    └── development.md
+└── README.md                       # This file
 ```
 
 ## 🎮 **Usage Examples**
 
-### Basic Web Browsing
+### Basic Web Browsing with Capture
 ```bash
 # Start the application
-python integrated_main_app.py
+cd owasp_pyqt6
+python3 ./main_app.py
 
-# Navigate to any website
-# All traffic automatically captured to ./captures/
+# All web traffic is automatically captured
+# Check the Capture Log tab to see intercepted requests
 ```
 
-### Content Replacement
+### Content Replacement Configuration
 ```json
-// Edit ./data/replacements.json
 {
   "replacements": [
     {
-      "name": "Replace Google with MODIFIED",
-      "pattern": "\\bGoogle\\b",
-      "replacement": "MODIFIED",
+      "name": "Replace 'Dinis' with 'MODIFIED'",
+      "pattern": "\\bDinis\\b",
+      "replacement": "******MODIFIED****",
+      "flags": ["IGNORECASE"],
+      "content_types": ["text/html", "application/json"],
+      "enabled": true,
+      "description": "Example replacement"
+    },
+    {
+      "name": "Add banner to HTML pages",
+      "pattern": "(<body[^>]*>)",
+      "replacement": "\\1<div style=\"background: black; color: white; padding: 10px; text-align: center;\">⚠️ CONTENT MODIFIED BY PROXY ⚠️</div>",
       "flags": ["IGNORECASE"],
       "content_types": ["text/html"],
       "enabled": true
@@ -144,88 +177,79 @@ python integrated_main_app.py
 }
 ```
 
-### Standalone mitmproxy
+### Command Line Options
 ```bash
-# Run just the proxy server
-python start_mitmproxy.py --port 8080
+# Custom ports
+python3 ./main_app.py --api-port 8001 --proxy-port 8081
 
-# With custom storage location
-python start_mitmproxy.py --port 8080 --storage ./my_captures
+# Disable content replacement
+python3 ./main_app.py --no-replacement
+
+# Quiet mode (less verbose output)
+python3 ./main_app.py --quiet
 ```
 
 ## 🔧 **Configuration**
 
-### SSL Bypass Configuration
-The application uses multiple layers of SSL bypass:
-- **Environment variables** for QtWebEngine flags
-- **Command-line arguments** (`--ignore-certificate-errors`, `--test-type`)
-- **Custom certificate handling** for mitmproxy CA certificate
+### Environment Variables
+The application automatically sets up required environment variables for SSL bypass:
+- `QTWEBENGINE_CHROMIUM_FLAGS`: Comprehensive SSL and security bypass flags
+- `QTWEBENGINE_DISABLE_SANDBOX`: Disabled for development
+- `QTWEBENGINE_REMOTE_DEBUGGING`: Port 9222 for debugging
 
 ### Content Replacement Rules
-Each replacement rule supports:
-- **Pattern**: Regex pattern to match
-- **Replacement**: String replacement (supports backreferences)
-- **Flags**: Regex flags (IGNORECASE, MULTILINE, DOTALL, etc.)
-- **Content Types**: Filter by MIME type
-- **Enable/Disable**: Individual rule control
+Each rule in `replacements.json` supports:
+- **name**: Descriptive name for the rule
+- **pattern**: Regular expression pattern
+- **replacement**: Replacement string (supports backreferences)
+- **flags**: Array of regex flags (IGNORECASE, MULTILINE, DOTALL, etc.)
+- **content_types**: Array of MIME types to apply the rule to
+- **enabled**: Boolean to enable/disable the rule
+- **description**: Optional description
 
-## 📈 **What's Working (MVP Status)**
+## 📈 **Features in Action**
 
-### ✅ **Fully Functional**
-- **Desktop application** with integrated browser
-- **Local mitmproxy server** with Python integration
-- **SSL certificate bypass** without system modifications  
-- **Content capture** for all web traffic types
-- **Real-time content replacement** with JSON configuration
-- **Organized content storage** with metadata
-- **Cross-platform compatibility** (macOS, Windows, Linux)
+### Real-time Content Modification
+- Modify any text content as it passes through the proxy
+- See changes instantly in the browser
+- Visual indicators show modified content (🔄) vs original (📡)
 
-### ✅ **Tested & Verified**
-- **HTTPS sites load** without certificate errors
-- **Content replacement works** in real-time 
-- **All traffic captured** and properly organized
-- **Regex patterns** with various flags function correctly
-- **Multiple content types** supported (HTML, JSON, CSS, JS)
+### Comprehensive Capture
+- Every request and response is captured
+- Organized storage with metadata
+- Quick access to captured content through the Capture Log tab
 
-## 🚧 **Next Steps & Roadmap**
+### Easy Rule Management
+- Edit rules through the UI or directly in JSON
+- Reload rules without restarting the application
+- View statistics on rule applications
 
-### 📋 **Immediate Improvements**
-- [ ] **Enhanced UI** for replacement rule management
-- [ ] **Content search/filter** capabilities in captured data
-- [ ] **Export functionality** for captured content
-- [ ] **Rule templates** for common replacement patterns
-- [ ] **Performance optimization** for large-scale captures
+## 🚧 **Troubleshooting**
 
-### 🎯 **Advanced Features** 
-- [ ] **Content analysis** with ML/NLP integration
-- [ ] **Automated content verification** and fact-checking
-- [ ] **Multi-user collaboration** features
-- [ ] **API integration** for external analysis tools
-- [ ] **Scheduled capture** capabilities
-- [ ] **Advanced filtering** and search capabilities
+### Common Issues
 
-### 🏗️ **Technical Enhancements**
-- [ ] **Plugin architecture** for extensible functionality
-- [ ] **Database integration** for large-scale content storage
-- [ ] **Distributed capture** across multiple instances
-- [ ] **Real-time streaming** API for captured content
-- [ ] **Advanced SSL handling** for complex scenarios
+**Browser doesn't load HTTPS sites:**
+- Ensure mitmproxy is running (check Proxy status indicator)
+- SSL bypass is automatically configured
 
-## 🎥 **Demo & Resources**
+**Content replacement not working:**
+- Check that replacement is enabled (green status indicator)
+- Verify your regex patterns in the Content Replacement tab
+- Ensure the content type matches your rule configuration
 
-- **📺 Demo Video**: [YouTube - Web Content Capture MVP](https://www.youtube.com/watch?v=s7G42SIdAX8)
-- **💼 LinkedIn Post**: [Project Announcement](https://www.linkedin.com/feed/update/urn:li:activity:7331359941871476737/)
-- **📁 GitHub Repository**: [OSBot-PyQt6](https://github.com/owasp-sbot/OSBot-PyQt6/tree/dev)
+**Application won't start:**
+- Install all dependencies: `pip install PyQt6 PyQt6-WebEngine mitmproxy fastapi uvicorn requests osbot-utils`
+- Check that ports 8080 (proxy) and 8000 (API) are available
 
 ## 🤝 **Contributing**
 
-We welcome contributions! Here's how to get started:
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
 
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-3. **Commit** your changes: `git commit -m 'Add amazing feature'`
-4. **Push** to the branch: `git push origin feature/amazing-feature`
-5. **Submit** a Pull Request
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## 📄 **License**
 
@@ -236,8 +260,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **mitmproxy** team for the excellent proxy framework
 - **PyQt6** for robust desktop application capabilities  
 - **FastAPI** for the clean API framework
-- **OWASP** community for security-focused development practices
+- **OWASP** community for security research and tools
 
 ---
 
-*For detailed documentation, see the [/docs](./docs/) folder*
+**Note**: This tool is intended for authorized security testing, web development, and research purposes only. Always ensure you have permission before intercepting or modifying web traffic.

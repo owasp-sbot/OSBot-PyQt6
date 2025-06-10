@@ -7,3 +7,12 @@
 [submodule "modules/Memory-FS"]
 	path = modules/Memory-FS
 	url = git@github.com:owasp-sbot/Memory-FS.git
+[submodule "modules/Graph-FS"]
+	path = modules/Graph-FS
+	url = git@github.com:owasp-sbot/Graph-FS.git
+[submodule "modules/Boto3-FS"]
+	path = modules/Boto3-FS
+	url = git@github.com:owasp-sbot/Boto3-FS.git
+[submodule "modules/Fast-API-FS"]
+	path = modules/Fast-API-FS
+	url = git@github.com:owasp-sbot/Fast-API-FS.git

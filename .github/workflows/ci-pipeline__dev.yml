@@ -74,6 +74,8 @@ jobs:
         with:
           name: macos-app-dmg
           path: |
+            dist/*.dmg
+            dist/*.app
             osbot_pyqt6/dist/*.dmg
             osbot_pyqt6/dist/*.app
           if-no-files-found: error
